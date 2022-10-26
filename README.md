@@ -34,7 +34,7 @@ There are 2 ways in which our Logistiq extension can be downloaded and installed
 6. [x] In order to add the Logsitiq extension to your Magento store, you will need to select the version as 2.4 
 
 #### 2. Install the Logistiq Extension directly to your Magento root folder by running the following commands
-1. [x] composer require homerload-alpha/logistiq-shipping-magento2
+1. [x] composer require homerload-alpha/logistiq-shipping
 2. [x] php bin/magento setup:upgrade --keep-generated
 3. [x] php bin/magento setup:di:compile
 4. [x] php bin/magento cache:clean
