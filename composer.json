@@ -1,0 +1,50 @@
+{
+    "name": "homerload-alpha/logistiq-shipping-magento2",
+    "description": "Logistiq module is your one-stop logistics platform for end-to-end shipping",
+    "keywords": [
+        "delivery",
+        "logistics",
+        "shipping"
+    ],
+    "require": {
+        "php": "~7.2.0||~7.3.0||~7.4.0",
+        "magento/framework": "102.0.*||103.0.*",
+        "magento/module-backend": "101.0.*",
+        "magento/module-catalog": "103.0.*",
+        "magento/module-config": "101.1.*",
+        "magento/module-directory": "100.3.*",
+        "magento/module-quote": "101.1.*",
+        "magento/module-sales": "102.0.*",
+        "magento/module-sales-rule": "101.1.*",
+        "magento/module-shipping": "100.3.*",
+        "magento/module-store": "101.0.*",
+        "ext-json": "*",
+        "ext-curl": "*"
+    },
+    "type": "magento2-module",
+    "license": [
+        "OSL-3.0",
+        "AFL-3.0"
+    ],
+    "authors": [
+        {
+            "name": "Logistiq",
+            "email": "tech@logistiq.io",
+            "role": "admin"
+        },
+        {
+            "name": "Robert Vilbert",
+            "email": "robert.vilbert@logistiq.io",
+            "role": "Fullstack Engineer"
+        }
+    ],
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Logistiq\\LogistiqShipping\\": ""
+        }
+    },
+    "version": "1.0.0"
+}
