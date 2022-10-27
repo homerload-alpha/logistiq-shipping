@@ -49,7 +49,7 @@
         }
     },
     "version": "1.0.0",
-    "minimum-stability": "dev-main",
+    "minimum-stability": "dev",
     "repositories": {
     "type": "composer",
     "url": "https://packagist.org/packages/homerload-alpha/"
