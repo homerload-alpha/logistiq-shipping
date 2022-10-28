@@ -13,7 +13,8 @@ use Magento\Sales\Model\Convert\Order;
 use Magento\Sales\Model\Order\Shipment\TrackFactory;
 use Magento\Shipping\Model\ShipmentNotifier;
 use Magento\Store\Model\ScopeInterface;
-use Zend\Log\Logger;
+use Psr\Log\LoggerInterface;
+
 
 class LogistiqSubmitObserver implements ObserverInterface
 {
@@ -30,6 +31,8 @@ class LogistiqSubmitObserver implements ObserverInterface
 
     protected $messageManager;
 
+    protected $logger;
+
     /**
      * @param ScopeConfigInterface $scopeConfig
      * @param Curl $_curl
@@ -37,6 +40,7 @@ class LogistiqSubmitObserver implements ObserverInterface
      * @param TrackFactory $trackFactory
      * @param ShipmentNotifier $shipmentFactory
      * @param ManagerInterface $messageManager
+     * @param LoggerInterface $logger
      */
     public function __construct(
         ScopeConfigInterface $scopeConfig,
@@ -44,7 +48,8 @@ class LogistiqSubmitObserver implements ObserverInterface
         Order $orderModel,
         TrackFactory  $trackFactory,
         ShipmentNotifier $shipmentFactory,
-        ManagerInterface $messageManager
+        ManagerInterface $messageManager,
+        LoggerInterface $logger
     ) {
         $this->scopeConfig = $scopeConfig;
         $this->_curl = $_curl;
@@ -52,6 +57,7 @@ class LogistiqSubmitObserver implements ObserverInterface
         $this->orderModel = $orderModel;
         $this->trackFactory = $trackFactory;
         $this->messageManager = $messageManager;
+        $this->logger = $logger;
     }
 
     /**
@@ -61,21 +67,18 @@ class LogistiqSubmitObserver implements ObserverInterface
      */
     public function execute(Observer $observer)
     {
-        $writer = new \Zend\Log\Writer\Stream(BP . '/var/log/logistiq-shipping.log');
-        $logger = new \Zend\Log\Logger();
-        $logger->addWriter($writer);
         try {
-            $logger->info('=== Entering LogistiqSubmitObserver execute function ===');
+            $this->logger->info('=== Entering LogistiqSubmitObserver execute function ===');
             $store_scope = ScopeInterface::SCOPE_STORE;
             # $carrier = $this->scopeConfig->getValue("carriers/logistiqshipping/name", $store_scope);
             $carriers = $this->scopeConfig->getValue("carriers", $store_scope);
             $invoice = $observer->getInvoice();
             $order = $invoice->getOrder();
             $json = json_encode($order->getData());
-            $logger->info($json);
+            $this->logger->info($json);
             $shippingMethod = $order->getShippingMethod();
-            $logger->debug($order->getIncrementId());
-            $logger->debug($shippingMethod);
+            $this->logger->debug($order->getIncrementId());
+            $this->logger->debug($shippingMethod);
             if (!$order->canShip()) {
                 throw new LocalizedException(
                     __('You can\'t create an shipment.')
@@ -83,12 +86,11 @@ class LogistiqSubmitObserver implements ObserverInterface
             }
             if (strcmp($shippingMethod, 'logistiqshipping_logistiqshipping') == 0 &&
                 array_key_exists("logistiqshipping", $carriers)) {
-                $logger->info('Logistiq process this order');
+                $this->logger->info('Logistiq process this order');
                 $logistiqCarriersConfig = $carriers["logistiqshipping"];
 
                 $logistiqBookOrderDetails = $this->processBookOrderWithLogistiq(
                     $order,
-                    $logger,
                     $logistiqCarriersConfig,
                     $invoice
                 );
@@ -120,16 +122,16 @@ class LogistiqSubmitObserver implements ObserverInterface
                     );
                 }
             } else {
-                $logger->info('Logistiq Skipping to process the order ' . $order->getIncrementId()
+                $this->logger->info('Logistiq Skipping to process the order ' . $order->getIncrementId()
                     . 'because current shipping method is: ' . $shippingMethod);
             }
-            $logger->info('=== Exiting LogistiqSubmitObserver execute function ===');
+            $this->logger->info('=== Exiting LogistiqSubmitObserver execute function ===');
 
         } catch (Exception $e) {
-            $logger->debug('Exception occurred ' . $e->getMessage());
+            $this->logger->debug('Exception occurred ' . $e->getMessage());
             $this->messageManager->addError($e->getMessage());
             throw new LocalizedException(
-                __("Logistiq:  Please try Some other time")
+                __("Logistiq: Please contact support team")
             );
         }
         return $this;
@@ -137,28 +139,26 @@ class LogistiqSubmitObserver implements ObserverInterface
 
     /**
      * @param $order
-     * @param Logger $logger
      * @param $logistiqCarriersConfig
      * @param $invoice
      * @return mixed|string
      */
-    private function processBookOrderWithLogistiq($order, \Zend\Log\Logger $logger, $logistiqCarriersConfig, $invoice)
+    private function processBookOrderWithLogistiq($order, $logistiqCarriersConfig, $invoice)
     {
-        $logger->info('Inside processBookOrderWithLogistiq ' . $order->getIncrementId());
-        $map_logsitqi_order_booking_request = $this->mapTheDataToOrderBookWithLogistiq($order, $logger, $invoice);
-        return $this->invokeOrderBooking($map_logsitqi_order_booking_request, $logger, $logistiqCarriersConfig);
+        $this->logger->info('Inside processBookOrderWithLogistiq ' . $order->getIncrementId());
+        $map_logsitqi_order_booking_request = $this->mapTheDataToOrderBookWithLogistiq($order, $invoice);
+        return $this->invokeOrderBooking($map_logsitqi_order_booking_request, $logistiqCarriersConfig);
     }
 
     /**
      * @param $order
-     * @param Logger $logger
      * @param $invoice
      * @return false|string
      */
-    private function mapTheDataToOrderBookWithLogistiq($order, \Zend\Log\Logger $logger, $invoice)
+    private function mapTheDataToOrderBookWithLogistiq($order, $invoice)
     {
         $shipping_address = $order->getShippingAddress();
-        $logger->info($shipping_address->getData());
+        $this->logger->info(json_encode($shipping_address->getData()));
         $sku_and_descriptions = $this->getSKUFromItems($order->getItems());
         $name = $this->getName($shipping_address);
         $_data_array = [
@@ -182,7 +182,7 @@ class LogistiqSubmitObserver implements ObserverInterface
             "weight" => round($order->getWeight(), 2)
         ];
         $json = json_encode($_data_array);
-        $logger->info($json);
+        $this->logger->info($json);
         return $json;
     }
 
@@ -206,50 +206,53 @@ class LogistiqSubmitObserver implements ObserverInterface
 
     /**
      * @param $map_logsitqi_order_booking_request
-     * @param Logger $logger
      * @param $logistiqCarriersConfig
      * @return mixed|string
      */
     private function invokeOrderBooking(
         $map_logsitqi_order_booking_request,
-        \Zend\Log\Logger $logger,
         $logistiqCarriersConfig
     ) {
-        $logger->info("Processing invokeOrderBooking");
+        $this->logger->info("Processing invokeOrderBooking");
         try {
             $uri = $logistiqCarriersConfig["url"];
             $uID = $logistiqCarriersConfig["user_id"];
             $uPwd = $logistiqCarriersConfig["u_pwd"];
-            $loginAPIRes = $this->invokeLoginAPI($uri, $uID, $uPwd, $logger);
+            $loginAPIRes = $this->invokeLoginAPI($uri, $uID, $uPwd);
             if (!empty($loginAPIRes) && array_key_exists("status", $loginAPIRes) && $loginAPIRes["status"]) {
                 $token = $loginAPIRes['token'];
-                $orderBookRes = $this->invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, $logger, $token);
+                $orderBookRes = $this->invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, $token);
                 if (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && $orderBookRes["status"]) {
-                    $logger->debug("Order Booking Successfully");
-                    $logger->debug($orderBookRes);
+                    $this->logger->debug("Order Booking Successfully");
+                    $this->logger->debug(json_encode($orderBookRes));
                     return $orderBookRes;
+                } elseif (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && !$orderBookRes["status"]){
+                    throw new LocalizedException(
+                        __($orderBookRes['detail'])
+                    );
                 } else {
-                    $logger->debug("Unable to Book the Order with Logistiq:");
-                    $logger->debug($orderBookRes);
+                    $this->logger->debug("Unable to Book the Order with Logistiq:");
+                    $this->logger->debug(json_encode($orderBookRes));
                     return "";
                 }
             } else {
-                $logger->debug("unable to get the Token from Logistiq");
-                $logger->debug($loginAPIRes);
+                $this->logger->debug("unable to get the Token from Logistiq");
+                $this->logger->debug(json_encode($loginAPIRes));
                 return "";
             }
         } catch (\Exception $exception) {
-            $logger->error($exception->getMessage());
-            return "";
+            $this->logger->error($exception->getMessage());
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __($exception->getMessage())
+            );
         }
     }
 
     /**
      * @param $carriers
-     * @param Logger $logger
      * @return string
      */
-    public function invokeLoginAPI($uri, $uID, $uPwd, \Zend\Log\Logger $logger)
+    public function invokeLoginAPI($uri, $uID, $uPwd)
     {
         try {
             $url = "$uri/auth/api/v1/accounts/login";
@@ -268,19 +271,20 @@ class LogistiqSubmitObserver implements ObserverInterface
             return "";
 
         } catch (\Exception $exception) {
-            $logger->error("invokeLoginAPI Exception Occurred" . $exception->getMessage());
-            return "";
+            $this->logger->error("invokeLoginAPI Exception Occurred" . $exception->getMessage());
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __($exception->getMessage())
+            );
         }
     }
 
     /**
      * @param $uri
      * @param $map_logsitqi_order_booking_request
-     * @param Logger $logger
      * @param string $token
      * @return mixed|string
      */
-    private function invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, Logger $logger, string $token)
+    private function invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, string $token)
     {
         try {
             $url = "$uri/auth/api/v1/orders/order-create";
@@ -297,8 +301,10 @@ class LogistiqSubmitObserver implements ObserverInterface
                 return "";
             }
         } catch (\Exception $exception) {
-            $logger->error("invokeBookOrderAPI Exception Occurred " . $exception->getMessage());
-            return "";
+            $this->logger->error("invokeBookOrderAPI Exception Occurred " . $exception->getMessage());
+            throw new \Magento\Framework\Exception\LocalizedException(
+                __($exception->getMessage())
+            );
         }
     }
 
