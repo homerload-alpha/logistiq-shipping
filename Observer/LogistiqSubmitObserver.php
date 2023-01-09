@@ -147,7 +147,8 @@ class LogistiqSubmitObserver implements ObserverInterface
     {
         $this->logger->info('Inside processBookOrderWithLogistiq ' . $order->getIncrementId());
         $map_logsitqi_order_booking_request = $this->mapTheDataToOrderBookWithLogistiq($order, $invoice);
-        return $this->invokeOrderBooking($map_logsitqi_order_booking_request, $logistiqCarriersConfig);
+//        return $this->invokeOrderBooking($map_logsitqi_order_booking_request, $logistiqCarriersConfig);
+        return '';
     }
 
     /**
@@ -209,74 +210,74 @@ class LogistiqSubmitObserver implements ObserverInterface
      * @param $logistiqCarriersConfig
      * @return mixed|string
      */
-    private function invokeOrderBooking(
-        $map_logsitqi_order_booking_request,
-        $logistiqCarriersConfig
-    ) {
-        $this->logger->info("Processing invokeOrderBooking");
-        try {
-            $uri = $logistiqCarriersConfig["url"];
-            $uID = $logistiqCarriersConfig["user_id"];
-            $uPwd = $logistiqCarriersConfig["u_pwd"];
-            $loginAPIRes = $this->invokeLoginAPI($uri, $uID, $uPwd);
-            if (!empty($loginAPIRes) && array_key_exists("status", $loginAPIRes) && $loginAPIRes["status"]) {
-                $token = $loginAPIRes['token'];
-                $orderBookRes = $this->invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, $token);
-                if (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && $orderBookRes["status"]) {
-                    $this->logger->debug("Order Booking Successfully");
-                    $this->logger->debug(json_encode($orderBookRes));
-                    return $orderBookRes;
-                } elseif (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && !$orderBookRes["status"]){
-                    throw new LocalizedException(
-                        __($orderBookRes['detail'])
-                    );
-                } else {
-                    $this->logger->debug("Unable to Book the Order with Logistiq:");
-                    $this->logger->debug(json_encode($orderBookRes));
-                    return "";
-                }
-            } else {
-                $this->logger->debug("unable to get the Token from Logistiq");
-                $this->logger->debug(json_encode($loginAPIRes));
-                return "";
-            }
-        } catch (\Exception $exception) {
-            $this->logger->error($exception->getMessage());
-            throw new \Magento\Framework\Exception\LocalizedException(
-                __($exception->getMessage())
-            );
-        }
-    }
+//    private function invokeOrderBooking(
+//        $map_logsitqi_order_booking_request,
+//        $logistiqCarriersConfig
+//    ) {
+//        $this->logger->info("Processing invokeOrderBooking");
+//        try {
+//            $uri = $logistiqCarriersConfig["url"];
+//            $uID = $logistiqCarriersConfig["user_id"];
+//            $uPwd = $logistiqCarriersConfig["u_pwd"];
+//            $loginAPIRes = $this->invokeLoginAPI($uri, $uID, $uPwd);
+//            if (!empty($loginAPIRes) && array_key_exists("status", $loginAPIRes) && $loginAPIRes["status"]) {
+//                $token = $loginAPIRes['token'];
+//                $orderBookRes = $this->invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, $token);
+//                if (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && $orderBookRes["status"]) {
+//                    $this->logger->debug("Order Booking Successfully");
+//                    $this->logger->debug(json_encode($orderBookRes));
+//                    return $orderBookRes;
+//                } elseif (!empty($orderBookRes) && array_key_exists("status", $orderBookRes) && !$orderBookRes["status"]){
+//                    throw new LocalizedException(
+//                        __($orderBookRes['detail'])
+//                    );
+//                } else {
+//                    $this->logger->debug("Unable to Book the Order with Logistiq:");
+//                    $this->logger->debug(json_encode($orderBookRes));
+//                    return "";
+//                }
+//            } else {
+//                $this->logger->debug("unable to get the Token from Logistiq");
+//                $this->logger->debug(json_encode($loginAPIRes));
+//                return "";
+//            }
+//        } catch (\Exception $exception) {
+//            $this->logger->error($exception->getMessage());
+//            throw new \Magento\Framework\Exception\LocalizedException(
+//                __($exception->getMessage())
+//            );
+//        }
+//    }
 
     /**
      * @param $carriers
      * @return string
      */
-    public function invokeLoginAPI($uri, $uID, $uPwd)
-    {
-        try {
-            $url = "$uri/auth/api/v1/accounts/login";
-            $headers = ["Content-Type" => "application/json"];
-            $payload = [
-                "email" => $uID,
-                "password" => $uPwd
-            ];
-            $this->_curl->setHeaders($headers);
-            $this->_curl->post($url, json_encode($payload));
-            $response = $this->_curl->getBody();
-            $statusCode = $this->_curl->getStatus();
-            if (!empty($response) && $statusCode == 200) {
-                return json_decode($response, true);
-            }
-            return "";
-
-        } catch (\Exception $exception) {
-            $this->logger->error("invokeLoginAPI Exception Occurred" . $exception->getMessage());
-            throw new \Magento\Framework\Exception\LocalizedException(
-                __($exception->getMessage())
-            );
-        }
-    }
+//    public function invokeLoginAPI($uri, $uID, $uPwd)
+//    {
+//        try {
+//            $url = "$uri/auth/api/v1/accounts/login";
+//            $headers = ["Content-Type" => "application/json"];
+//            $payload = [
+//                "email" => $uID,
+//                "password" => $uPwd
+//            ];
+//            $this->_curl->setHeaders($headers);
+//            $this->_curl->post($url, json_encode($payload));
+//            $response = $this->_curl->getBody();
+//            $statusCode = $this->_curl->getStatus();
+//            if (!empty($response) && $statusCode == 200) {
+//                return json_decode($response, true);
+//            }
+//            return "";
+//
+//        } catch (\Exception $exception) {
+//            $this->logger->error("invokeLoginAPI Exception Occurred" . $exception->getMessage());
+//            throw new \Magento\Framework\Exception\LocalizedException(
+//                __($exception->getMessage())
+//            );
+//        }
+//    }
 
     /**
      * @param $uri
@@ -284,29 +285,29 @@ class LogistiqSubmitObserver implements ObserverInterface
      * @param string $token
      * @return mixed|string
      */
-    private function invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, string $token)
-    {
-        try {
-            $url = "$uri/auth/api/v1/orders/order-create";
-            $headers = ["Content-Type" => "application/json", "Authorization" => 'Bearer ' . $token];
-            $this->_curl->setHeaders($headers);
-            $this->_curl->post($url, $map_logsitqi_order_booking_request);
-            $response = $this->_curl->getBody();
-            $statusCode = $this->_curl->getStatus();
-            if ($statusCode == 200 && !empty($response)) {
-                return json_decode($response, true);
-            } elseif ($statusCode == 400 && !empty($response)) {
-                return json_decode($response, true);
-            } else {
-                return "";
-            }
-        } catch (\Exception $exception) {
-            $this->logger->error("invokeBookOrderAPI Exception Occurred " . $exception->getMessage());
-            throw new \Magento\Framework\Exception\LocalizedException(
-                __($exception->getMessage())
-            );
-        }
-    }
+//    private function invokeBookOrderAPI($uri, $map_logsitqi_order_booking_request, string $token)
+//    {
+//        try {
+//            $url = "$uri/auth/api/v1/orders/order-create";
+//            $headers = ["Content-Type" => "application/json", "Authorization" => 'Bearer ' . $token];
+//            $this->_curl->setHeaders($headers);
+//            $this->_curl->post($url, $map_logsitqi_order_booking_request);
+//            $response = $this->_curl->getBody();
+//            $statusCode = $this->_curl->getStatus();
+//            if ($statusCode == 200 && !empty($response)) {
+//                return json_decode($response, true);
+//            } elseif ($statusCode == 400 && !empty($response)) {
+//                return json_decode($response, true);
+//            } else {
+//                return "";
+//            }
+//        } catch (\Exception $exception) {
+//            $this->logger->error("invokeBookOrderAPI Exception Occurred " . $exception->getMessage());
+//            throw new \Magento\Framework\Exception\LocalizedException(
+//                __($exception->getMessage())
+//            );
+//        }
+//    }
 
     /**
      * @param $awb
